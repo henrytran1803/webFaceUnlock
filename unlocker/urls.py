@@ -1,0 +1,10 @@
+from django.urls import path, include
+from unlocker import views
+
+
+urlpatterns = [
+    path('', views.index, name='index'),
+    path('video_feed', views.video_feed, name='video_feed'),
+	path('livecam_feed', views.livecam_feed, name='livecam_feed'),
+    path('capture_frame/', views.capture_frame, name='capture_frame'),
+    ]

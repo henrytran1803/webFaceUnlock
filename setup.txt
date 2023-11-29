@@ -1,0 +1,4 @@
+--upgrade pip
+
+django
+opencv-python
