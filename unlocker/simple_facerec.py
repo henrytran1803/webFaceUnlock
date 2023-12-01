@@ -39,10 +39,8 @@ class SimpleFacerec:
     #         self.known_face_names.append(filename)
     #     print("Encoding images loaded")
     def load_encoding_images_from_db(self):
-        # Truy vấn dữ liệu từ model Django
         images_queryset = Images.objects.all()
 
-        # Xử lý từng hình ảnh trong queryset
         for image_obj in images_queryset:
             image_data = image_obj.image
             name = image_obj.id

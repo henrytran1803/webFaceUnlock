@@ -8,6 +8,7 @@ import cv2
 import numpy as np
 import face_recognition
 from datetime import datetime
+from django.shortcuts import redirect
 
 class VideoCamera(object):
     def __init__(self):
@@ -15,47 +16,47 @@ class VideoCamera(object):
         self.sfr = SimpleFacerec()
         self.sfr.load_encoding_images_from_db()
         self.face_detected_time = None
+        self.redirect_flag = False
+
     def __del__(self):
         self.video.release()
 
-
     def get_frame(self):
         success, frame = self.video.read()
-
         face_locations, face_names = self.sfr.detect_known_faces(frame)
+
         for face_loc, name in zip(face_locations, face_names):
             y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
-
             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
             self.fancyDraw(frame, (x1, y1, x2 - x1, y2 - y1))
 
         if face_names:
-            # If a known face is detected, update the time
             if self.face_detected_time is None:
                 self.face_detected_time = datetime.now()
             else:
-                # Check if more than 5 seconds have passed
                 time_difference = datetime.now() - self.face_detected_time
                 if time_difference.total_seconds() > 5:
-                    # Open a new window for a known face using JavaScript
-                    return self.open_new_window()
+                    # Set the redirect flag if a known face is detected for more than 5 seconds
+                    self.redirect_flag = True
         else:
             # Reset the face detected time if no face is detected
             self.face_detected_time = None
+            self.redirect_flag = False
 
-        # If no known faces are detected, check if an unknown face is detected for more than 5 seconds
         if self.face_detected_time is not None:
             time_difference = datetime.now() - self.face_detected_time
             if time_difference.total_seconds() > 5:
-                # Open a new window for an unknown face using JavaScript
-                return self.open_new_window()
+                # Set the redirect flag if an unknown face is detected for more than 5 seconds
+                self.redirect_flag = True
 
-        # Chuyển đổi không gian màu từ BGR sang RGB
         frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
 
         # Convert the frame to a format suitable for Tkinter
         _, jpeg = cv2.imencode('.jpg', frame_rgb)
         return jpeg.tobytes()
+    def get_frames(self):
+        while True:
+            yield self.get_frame()
 
     def open_new_window(self):
         # Include JavaScript code to open a new window
@@ -192,7 +193,7 @@ class SimpleFacerec:
             face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
 
             # Check if face_distances is not empty before using np.argmin()
-            if face_distances:
+            if any(face_distances):
                 best_match_index = np.argmin(face_distances)
 
                 if matches[best_match_index]:

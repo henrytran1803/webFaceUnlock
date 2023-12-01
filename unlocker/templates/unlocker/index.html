@@ -55,32 +55,30 @@
         </header>
 
         <main>
-            <img id="webcam" width="640" height="480" src="" alt="Webcam Stream">
+            <img src="{% url 'video_feed' %}" alt="">
             <form method="post" action="{% url 'capture_frame' %}">
         {% csrf_token %}
         <label for="textboxx">Tên ảnh:</label>
 
         <input type="text" id="textboxx" name="textboxx">
         <button type="submit">Chụp và Lưu Frame</button>
-    </form>
-    <script>
-        var img = document.getElementById('webcam');
-        function updateFrame() {
-            img.src = "/video_feed";
-            setTimeout(updateFrame, 10);
-            source.onmessage = function (event) {
-            // Xử lý dữ liệu từ server, ví dụ: event.data
-            // Mở cửa sổ pop-up nếu có điều kiện cụ thể
-            // Ví dụ: mở cửa sổ pop-up khi nhận diện khuôn mặt
-            if (event.data === "known_face_detected") {
-                openPopup('https://fb.com');
-            } else if (event.data === "unknown_face_detected") {
-                openPopup('https://google.com');
+<script>
+    var img = document.getElementById('webcam');
+    function updateFrame() {
+        img.src = "/video_feed";
+        setTimeout(updateFrame, 10);
+        source.onmessage = function (event) {
+            if (event.data === "REDIRECT") {
+                // Redirect when a special string is received
+                window.location.href = '/open/';
             }
         };
-        }
-        updateFrame();
-    </script>
+    }
+    updateFrame();
+</script>
+
+    </form>
+
 
             <section class="hero">
                 <div class="container">

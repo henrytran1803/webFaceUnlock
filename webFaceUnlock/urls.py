@@ -21,5 +21,5 @@ from django.urls import include, path
 urlpatterns = [
     path('admin/', admin.site.urls),
     path('', include("unlocker.urls")),
-path('', include("open.urls")),
+    path('open/', include("open.urls")),
 ]
