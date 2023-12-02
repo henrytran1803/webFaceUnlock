@@ -57,15 +57,6 @@ class VideoCamera(object):
     def get_frames(self):
         while True:
             yield self.get_frame()
-
-    def open_new_window(self):
-        # Include JavaScript code to open a new window
-        js_code = """
-        <script>
-            window.open('https://google.com', '_blank');
-        </script>
-        """
-        return js_code.encode('utf-8')
     def fancyDraw(self, img, bbox, l=30, t=5, rt=1):
         x, y, w, h = bbox
         x1, y1 = x + w, y + h
@@ -171,13 +162,10 @@ class SimpleFacerec:
     def detect_known_faces(self, frame):
         small_frame = cv2.resize(frame, (0, 0), fx=self.frame_resizing, fy=self.frame_resizing)
 
-        # Convert the image from BGR color (which OpenCV uses) to RGB color (which face_recognition uses)
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
 
-        # Find all the faces and face encodings in the current frame of video
         face_locations = face_recognition.face_locations(rgb_small_frame)
 
-        # Check if any faces are found
         if not face_locations:
             return np.array([]), []
 
@@ -185,14 +173,11 @@ class SimpleFacerec:
 
         face_names = []
         for face_encoding in face_encodings:
-            # See if the face is a match for the known face(s)
             matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
             name = "Unknown"
 
-            # Or instead, use the known face with the smallest distance to the new face
             face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
 
-            # Check if face_distances is not empty before using np.argmin()
             if any(face_distances):
                 best_match_index = np.argmin(face_distances)
 
@@ -200,7 +185,6 @@ class SimpleFacerec:
                     name = self.known_face_names[best_match_index]
             face_names.append(name)
 
-        # Convert to numpy array to adjust coordinates with frame resizing quickly
         face_locations = np.array(face_locations)
         face_locations = face_locations / self.frame_resizing
         return face_locations.astype(int), face_names

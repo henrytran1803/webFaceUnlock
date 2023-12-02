@@ -55,27 +55,33 @@
         </header>
 
         <main>
-            <img src="{% url 'video_feed' %}" alt="">
-            <form method="post" action="{% url 'capture_frame' %}">
-        {% csrf_token %}
-        <label for="textboxx">Tên ảnh:</label>
+<!-- Include jQuery library -->
+<script src="https://code.jquery.com/jquery-3.6.4.min.js"></script>
 
-        <input type="text" id="textboxx" name="textboxx">
-        <button type="submit">Chụp và Lưu Frame</button>
+<!-- Your HTML code -->
+<img src="{% url 'video_feed' %}" alt="">
+<form method="post" action="{% url 'capture_frame' %}">
+    {% csrf_token %}
+    <label for="textboxx">Tên ảnh:</label>
+    <input type="text" id="textboxx" name="textboxx">
+    <button type="submit">Chụp và Lưu Frame</button>
+</form>
+
 <script>
-    var img = document.getElementById('webcam');
-    function updateFrame() {
-        img.src = "/video_feed";
-        setTimeout(updateFrame, 10);
-        source.onmessage = function (event) {
-            if (event.data === "REDIRECT") {
-                // Redirect when a special string is received
-                window.location.href = '/open/';
+    function checkRedirect() {
+        $.ajax({
+            url: '{% url "check_redirect" %}',  // Correct way to include the URL
+            success: function(data) {
+                if (data.redirect) {
+                    window.location.href = '/open/';  // URL to redirect to
+                }
             }
-        };
+        });
     }
-    updateFrame();
+
+    setInterval(checkRedirect, 1000);  // Check every second
 </script>
+
 
     </form>
 
