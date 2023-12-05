@@ -9,9 +9,8 @@ https://docs.djangoproject.com/en/4.2/topics/settings/
 For the full list of settings and their values, see
 https://docs.djangoproject.com/en/4.2/ref/settings/
 """
-
+from celery.schedules import crontab
 from pathlib import Path
-
 # Build paths inside the project like this: BASE_DIR / 'subdir'.
 BASE_DIR = Path(__file__).resolve().parent.parent
 
@@ -27,6 +26,24 @@ DEBUG = True
 
 ALLOWED_HOSTS = ['*']
 
+# Celery and Redis configuration
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_TIMEZONE = 'UTC'
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'  # Thay 'your_email_host' bằng địa chỉ SMTP của bạn
+EMAIL_PORT = 587  # Số cổng SMTP của bạn
+EMAIL_USE_TLS = True  # Nếu sử dụng TLS, nếu không, đặt thành False
+EMAIL_HOST_USER = 'tranvietanh1803@gmail.com'  # Thay 'your_email@example.com' bằng địa chỉ email của bạn
+EMAIL_HOST_PASSWORD = 'nawh nonv shpj olkl'  # Thay 'your_email_password' bằng mật khẩu email của bạn
+CELERY_BEAT_SCHEDULE = {
+    'send-reminder-emails': {
+        'task': 'your_project.tasks.send_reminder_emails',
+        'schedule': crontab(hour=22, minute=30),  # Run daily at 10:30 PM
+    },
+}
 
 
 # Application definition
@@ -40,6 +57,7 @@ INSTALLED_APPS = [
     'django.contrib.staticfiles',
     'unlocker',
     'open',
+'django_celery_beat',
 ]
 
 MIDDLEWARE = [

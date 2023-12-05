@@ -17,14 +17,14 @@ class VideoCamera(object):
         self.sfr.load_encoding_images_from_db()
         self.face_detected_time = None
         self.redirect_flag = False
-
+        self.facename='unknown'
     def __del__(self):
         self.video.release()
 
     def get_frame(self):
         success, frame = self.video.read()
         face_locations, face_names = self.sfr.detect_known_faces(frame)
-
+        self.facename = face_names
         for face_loc, name in zip(face_locations, face_names):
             y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
@@ -36,7 +36,7 @@ class VideoCamera(object):
             else:
                 time_difference = datetime.now() - self.face_detected_time
                 if time_difference.total_seconds() > 5:
-                    # Set the redirect flag if a known face is detected for more than 5 seconds
+
                     self.redirect_flag = True
         else:
             # Reset the face detected time if no face is detected
@@ -125,20 +125,28 @@ class SimpleFacerec:
         images_data = Images.objects.all()
 
         for image in images_data:
-            image_array = np.frombuffer(image.image, np.uint8)
-            img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
-            rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+            try:
+                image_array = np.frombuffer(image.image, np.uint8)
+                img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
 
-            # Get encoding
-            img_encoding = face_recognition.face_encodings(rgb_img)[0]
+                # Detect faces in the image
+                face_locations = face_recognition.face_locations(rgb_img)
 
-            # Convert image.id to a string
-            image_id_str = str(image.id)
+                if face_locations:
+                    # If faces are detected, get face encodings
+                    img_encoding = face_recognition.face_encodings(rgb_img, face_locations)[0]
+                    image_id_str = str(image.id)
+                    self.known_face_encodings.append(img_encoding)
+                    self.known_face_names.append(image_id_str)
+                    print(f"Face encoding loaded for image ID: {image_id_str}")
+                else:
+                    print(f"No faces found in image ID: {image.id}")
 
-            # Store name and encoding
-            self.known_face_encodings.append(img_encoding)
-            self.known_face_names.append(image_id_str)
-            print(image_id_str)
+            except Exception as e:
+                print(f"Error processing image ID {image.id}: {e}")
+
+        print("Encodings loaded from database")
 
         print("Encodings loaded from database")
     def save_encodings_to_text(self, filename="face_encodings.txt"):
@@ -150,15 +158,12 @@ class SimpleFacerec:
     def load_encodings_from_text(self, filename="face_encodings.txt"):
         with open(filename, "r") as file:
             lines = file.readlines()
-
         for line in lines:
             name, encoding_str = line.strip().split(": ")
             encoding = np.fromstring(encoding_str[1:-1], dtype=float, sep=',')
             self.known_face_names.append(name)
             self.known_face_encodings.append(encoding)
-
         print(f"Face encodings loaded from {filename}")
-
     def detect_known_faces(self, frame):
         small_frame = cv2.resize(frame, (0, 0), fx=self.frame_resizing, fy=self.frame_resizing)
 
@@ -175,7 +180,6 @@ class SimpleFacerec:
         for face_encoding in face_encodings:
             matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
             name = "Unknown"
-
             face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
 
             if any(face_distances):
@@ -183,6 +187,7 @@ class SimpleFacerec:
 
                 if matches[best_match_index]:
                     name = self.known_face_names[best_match_index]
+
             face_names.append(name)
 
         face_locations = np.array(face_locations)

@@ -121,6 +121,7 @@ class DjangoSession(models.Model):
 class Images(models.Model):
     name = models.TextField()
     image = models.BinaryField()
+    email = models.EmailField(blank=True, null=True)  # Add this line
     timestamp = models.DateTimeField(blank=True, null=True)
 
     class Meta:
