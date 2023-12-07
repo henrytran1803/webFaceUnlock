@@ -1,0 +1,19 @@
+version: '3'
+
+services:
+  web:
+    build: .
+    expose:
+      - "8000"
+    networks:
+      - mynetwork
+  nginx:
+    image: nginx:latest
+    ports:
+      - "80:80"
+    networks:
+      - mynetwork
+    volumes:
+      - ./nginx.conf:/etc/nginx/conf.d/default.conf
+networks:
+  mynetwork:

@@ -39,7 +39,6 @@ def video_feed(request):
                                  content_type='multipart/x-mixed-replace; boundary=frame')
 
 def check_redirect(request):
-
     if frame is not None:
         frame_base64 = base64.b64encode(frame).decode('utf-8')
 
@@ -54,13 +53,6 @@ def check_redirect(request):
             return JsonResponse({'redirect': False, 'facename': facename_value})
     else:
         return JsonResponse({'error': 'Frame is None'})
-
-
-
-def run_parallel():
-    with ThreadPoolExecutor() as executor:
-        executor.submit(video_feed)
-        executor.submit(check_redirect)
 
 def livecam_feed(request):
     return redirect('open')

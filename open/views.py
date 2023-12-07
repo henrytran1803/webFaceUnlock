@@ -4,7 +4,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from .models import Images
-
+import base64
 
 def open(request):
     obj_ids = list(Images.objects.values_list('id', flat=True))
@@ -20,7 +20,7 @@ def close(request):
 
 def email(request):
     return render(request, 'open/email.html')
-import base64
+
 
 def borrow(request):
     frame_str = request.session.get('face', None)
