@@ -125,6 +125,7 @@ class SimpleFacerec:
         images_data = Images.objects.all()
 
         for image in images_data:
+            print(image.id)
             try:
                 image_array = np.frombuffer(image.image, np.uint8)
                 img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)

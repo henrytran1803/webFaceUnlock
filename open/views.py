@@ -87,8 +87,6 @@ def process_form(request):
         elif action == 'open':
             print('khjoong xóa')
             return redirect('index')
-
-
     return redirect('index')
 def integer_number(lst):
     total = 0

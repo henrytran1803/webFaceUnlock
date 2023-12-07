@@ -210,6 +210,10 @@ def borrow(request):
 ```
 - Views nhận email thông báo
 ```python
+# chuyển hướng đến email thì đợi ghi nhận nút bấm từ email
+# 2 trường hợp
+# notifyme thì nó sẽ lấy id người trước đó sau đó thêm email chuyển về trang chủ
+# còn nothanks thì chuyển về trang chủ
 def associate_email(request):
     if request.method == 'POST':
         email = request.POST.get('email', '')
@@ -232,10 +236,38 @@ def associate_email(request):
 
     return redirect('index')
 ```
+- views trả haowcj tiếp tục mượn
+```python
+# Tên được lấy ra là ở dạng mảng nên ví dụ 14 sẽ là [1,4]
+# nên tôi có hàm để gộp mảng lại
+# nhận sự kiện nếu như nhấn close trả tủ thì xóa obj đó khỏi db chuyển về trang chủ
+# còn sự kiện open mở tủ tạm thời thì chuyển lại về trang chủ
+def process_form(request):
+    try:
+        object_id = request.session['facename']
+        print(type(object_id))
+        idobj = integer_number(object_id)
+        print(idobj)
+    except KeyError:
+        return redirect('index')
 
+    obj = get_object_or_404(Images, id=idobj)
 
+    if request.method == 'POST':
+        action = request.POST.get('action')
+        if action == 'close':
+            if obj:
+                obj.delete()
+                print('đã xóa')
+        elif action == 'open':
+            print('khjoong xóa')
+            return redirect('index')
+    return redirect('index')
+def integer_number(lst):
+    total = 0
+    for i in lst:
+        total = total * 10 + int(i)
+    return total
 ```
-```
-
-
 ---
+##Xử lý khuôn mặt
