@@ -236,7 +236,7 @@ def associate_email(request):
 
     return redirect('index')
 ```
-- views trả haowcj tiếp tục mượn
+- views trả hoặc tiếp tục mượn
 ```python
 # Tên được lấy ra là ở dạng mảng nên ví dụ 14 sẽ là [1,4]
 # nên tôi có hàm để gộp mảng lại
@@ -271,3 +271,198 @@ def integer_number(lst):
 ```
 ---
 ##Xử lý khuôn mặt
+###Class video camera
+VideoCamera:
+Class này cung cấp các phương thức để chụp và xử lý video từ webcam.
+Sử dụng thư viện OpenCV để chụp video và nhận diện khuôn mặt.
+Hàm init khởi tạo đối tượng chụp video và nạp thông tin khuôn mặt đã biết từ cơ sở dữ liệu.
+Hàm del giải phóng đối tượng chụp video.
+Hàm get_frame chụp một khung hình từ webcam, phát hiện khuôn mặt và trả về khung hình với các bounding box và tên khuôn mặt.
+Hàm fancyDraw vẽ một hộp trang trí xung quanh khuôn mặt được phát hiện.
+Hàm get_frames cung cấp một generator liên tục chụp và trả về các khung hình.
+```python
+# Hàm __init__ khởi tạo đối tượng VideoCamera và nạp thông tin khuôn mặt đã biết từ cơ sở dữ liệu.
+# Hàm này khởi tạo một đối tượng cv2.VideoCapture() để chụp video từ webcam. Sau đó, hàm này gọi hàm load_encoding_images_from_db() để nạp thông tin khuôn mặt đã biết từ cơ sở dữ liệu.
+# Hàm __del__
+# Hàm __del__ giải phóng đối tượng VideoCamera.
+# Hàm này đóng đối tượng cv2.VideoCapture().
+# Hàm get_frame
+# Hàm get_frame chụp một khung hình từ webcam, phát hiện khuôn mặt và trả về khung hình với các bounding box và tên khuôn mặt.
+# Hàm này sử dụng phương thức read() của đối tượng cv2.VideoCapture() để chụp một khung hình từ webcam. Sau đó, hàm này gọi hàm detect_known_faces() để phát hiện khuôn mặt trong khung hình. Cuối cùng, hàm này trả về khung hình với các bounding box và tên khuôn mặt.
+# Hàm fancyDraw
+# Hàm fancyDraw vẽ một hộp trang trí xung quanh khuôn mặt được phát hiện.
+# Hàm này sử dụng các phương thức của thư viện cv2 để vẽ một hộp màu đỏ xung quanh các khuôn mặt được phát hiện.
+# Hàm get_frames
+# Hàm get_frames cung cấp một generator liên tục chụp và trả về các khung hình.
+# Hàm này liên tục gọi hàm get_frame() và trả về khung hình được chụp.
+class VideoCamera(object):
+    def __init__(self):
+        self.video = cv2.VideoCapture(0)
+        self.sfr = SimpleFacerec()
+        self.sfr.load_encoding_images_from_db()
+        self.face_detected_time = None
+        self.redirect_flag = False
+        self.facename='unknown'
+    def __del__(self):
+        self.video.release()
+
+    def get_frame(self):
+        success, frame = self.video.read()
+        face_locations, face_names = self.sfr.detect_known_faces(frame)
+        self.facename = face_names
+        for face_loc, name in zip(face_locations, face_names):
+            y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
+            cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
+            self.fancyDraw(frame, (x1, y1, x2 - x1, y2 - y1))
+
+        if face_names:
+            if self.face_detected_time is None:
+                self.face_detected_time = datetime.now()
+            else:
+                time_difference = datetime.now() - self.face_detected_time
+                if time_difference.total_seconds() > 5:
+
+                    self.redirect_flag = True
+        else:
+            # Reset the face detected time if no face is detected
+            self.face_detected_time = None
+            self.redirect_flag = False
+
+        if self.face_detected_time is not None:
+            time_difference = datetime.now() - self.face_detected_time
+            if time_difference.total_seconds() > 5:
+                # Set the redirect flag if an unknown face is detected for more than 5 seconds
+                self.redirect_flag = True
+
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+
+        # Convert the frame to a format suitable for Tkinter
+        _, jpeg = cv2.imencode('.jpg', frame_rgb)
+        return jpeg.tobytes()
+    def get_frames(self):
+        while True:
+            yield self.get_frame()
+    def fancyDraw(self, img, bbox, l=30, t=5, rt=1):
+        x, y, w, h = bbox
+        x1, y1 = x + w, y + h
+
+        cv2.rectangle(img, bbox, (255, 0, 255), rt)
+
+        cv2.line(img, (x, y), (x + l, y), (255, 0, 255), t)
+        cv2.line(img, (x, y), (x, y + l), (255, 0, 255), t)
+        # Top Right  x1,y
+        cv2.line(img, (x1, y), (x1 - l, y), (255, 0, 255), t)
+        cv2.line(img, (x1, y), (x1, y + l), (255, 0, 255), t)
+        # Bottom Left  x,y1
+        cv2.line(img, (x, y1), (x + l, y1), (255, 0, 255), t)
+        cv2.line(img, (x, y1), (x, y1 - l), (255, 0, 255), t)
+        # Bottom Right  x1,y1
+        cv2.line(img, (x1, y1), (x1 - l, y1), (255, 0, 255), t)
+        cv2.line(img, (x1, y1), (x1, y1 - l), (255, 0, 255), t)
+        return img
+```
+###Class SimpleFacerec
+Phương thức __init__:
+Khởi tạo một đối tượng SimpleFacerec.
+known_face_encodings: Danh sách chứa các mã hóa khuôn mặt đã biết.
+known_face_names: Danh sách chứa tên tương ứng với mã hóa khuôn mặt.
+```python
+    def __init__(self):
+        self.known_face_encodings = []
+        self.known_face_names = []
+
+        # Resize frame for a faster speed
+        self.frame_resizing = 0.25
+```
+Phương thức load_encoding_images_from_db:
+Lấy các dữ liệu ảnh từ cơ sở dữ liệu (Images.objects.all()).
+Đọc dữ liệu ảnh và chuyển đổi thành mảng numpy.
+Sử dụng thư viện face_recognition để xác định vị trí khuôn mặt và mã hóa khuôn mặt.
+Nếu có khuôn mặt được tìm thấy, thêm mã hóa khuôn mặt và tên tương ứng vào danh sách.
+```python
+   def load_encoding_images_from_db(self):
+        images_data = Images.objects.all()
+        for image in images_data:
+            print(image.id)
+            try:
+                image_array = np.frombuffer(image.image, np.uint8)
+                img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
+                rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
+                face_locations = face_recognition.face_locations(rgb_img)
+                if face_locations:
+                    img_encoding = face_recognition.face_encodings(rgb_img, face_locations)[0]
+                    image_id_str = str(image.id)
+                    self.known_face_encodings.append(img_encoding)
+                    self.known_face_names.append(image_id_str)
+                    print(f"Face encoding loaded for image ID: {image_id_str}")
+                else:
+                    print(f"No faces found in image ID: {image.id}")
+
+            except Exception as e:
+                print(f"Error processing image ID {image.id}: {e}")
+
+        print("Encodings loaded from database")
+
+        print("Encodings loaded from database")
+```
+
+Phương thức detect_known_faces:
+Nhận một khung hình làm đối số đầu vào.
+Giảm kích thước của khung hình để tăng tốc độ xử lý (cv2.resize).
+Chuyển đổi khung hình thành định dạng màu RGB (cv2.cvtColor).
+Sử dụng face_recognition để xác định vị trí và mã hóa khuôn mặt trong khung hình giảm kích thước.
+So sánh mã hóa khuôn mặt với danh sách các mã hóa khuôn mặt đã biết.
+Trả về vị trí khuôn mặt và tên tương ứng.
+```python
+  def detect_known_faces(self, frame):
+        small_frame = cv2.resize(frame, (0, 0), fx=self.frame_resizing, fy=self.frame_resizing)
+
+        rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
+
+        face_locations = face_recognition.face_locations(rgb_small_frame)
+
+        if not face_locations:
+            return np.array([]), []
+
+        face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
+
+        face_names = []
+        for face_encoding in face_encodings:
+            matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
+            name = "Unknown"
+            face_distances = face_recognition.face_distance(self.known_face_encodings, face_encoding)
+
+            if any(face_distances):
+                best_match_index = np.argmin(face_distances)
+
+                if matches[best_match_index]:
+                    name = self.known_face_names[best_match_index]
+
+            face_names.append(name)
+
+        face_locations = np.array(face_locations)
+        face_locations = face_locations / self.frame_resizing
+        return face_locations.astype(int), face_names
+```
+##Đôi điều về thư viện face_recognition
+Thư viện face_recognition là một giao diện đơn giản được xây dựng trên thư viện dự án mã nguồn mở dlib và được tạo ra bởi Adam Geitgey. Nó giúp đơn giản hóa quá trình nhận diện và mã hóa khuôn mặt, làm cho các nhiệm vụ nhận diện khuôn mặt trở nên dễ dàng hơn với Python.
+
+Input của Thư Viện face_recognition:
+Ảnh đầu vào: Đối với việc nhận diện khuôn mặt, bạn có thể sử dụng ảnh chụp từ camera hoặc tải ảnh từ các nguồn khác nhau. Thư viện hỗ trợ đa dạng định dạng ảnh (JPEG, PNG, ...).
+Output của Thư Viện face_recognition:
+Face Landmarks (Vị trí các điểm trên khuôn mặt):
+
+face_recognition.face_landmarks(image): Trả về một danh sách chứa các điểm quan trọng trên khuôn mặt như mũi, mắt, miệng, ...
+Face Locations (Vị trí của khuôn mặt):
+
+face_recognition.face_locations(image): Trả về một danh sách các tuple (top, right, bottom, left) đại diện cho vị trí của các khuôn mặt trong ảnh.
+Face Encodings (Mã hóa khuôn mặt):
+
+face_recognition.face_encodings(image, face_locations): Trả về mã hóa khuôn mặt cho các khuôn mặt được định vị trong ảnh.
+So Sánh Khuôn Mặt:
+
+face_recognition.compare_faces(known_face_encodings, face_encoding): So sánh mã hóa khuôn mặt của một khuôn mặt với danh sách các mã hóa đã biết.
+Khoảng Cách Giữa Các Khuôn Mặt:
+
+face_recognition.face_distance(known_face_encodings, face_encoding): Tính toán khoảng cách giữa mã hóa khuôn mặt của một khuôn mặt và danh sách các mã hóa đã biết.
+

@@ -1,8 +1,8 @@
-# tasks.py
+from datetime import timezone
+
 from celery import shared_task
 from django.core.mail import send_mail
-from django.utils import timezone
-from .models import Images  # Adjust import based on your model
+from .models import Images
 
 @shared_task
 def send_reminder_emails():
@@ -15,4 +15,4 @@ def send_reminder_emails():
 
         for image in images_with_emails:
             # Send reminder email for each object
-            send_mail('Cảnh báo', 'sắp đến giờ đóng của quý khách vui lòng lấy tư trang tại tủ', 'from@example.com', [image.email])
+            send_mail('Cảnh báo', 'sắp đến giờ đóng cửa quý khách vui lòng lấy tư trang tại tủ', 'from@example.com', [image.email])

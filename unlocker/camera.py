@@ -1,14 +1,9 @@
-from idlelib import window
-from tkinter import Image
-from unlocker.simple_facerec import SimpleFacerec
 from unlocker.models import Images
-from PIL import Image
-from io import BytesIO
 import cv2
 import numpy as np
 import face_recognition
 from datetime import datetime
-from django.shortcuts import redirect
+
 
 class VideoCamera(object):
     def __init__(self):
@@ -39,19 +34,16 @@ class VideoCamera(object):
 
                     self.redirect_flag = True
         else:
-            # Reset the face detected time if no face is detected
             self.face_detected_time = None
             self.redirect_flag = False
 
         if self.face_detected_time is not None:
             time_difference = datetime.now() - self.face_detected_time
             if time_difference.total_seconds() > 5:
-                # Set the redirect flag if an unknown face is detected for more than 5 seconds
                 self.redirect_flag = True
 
-        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
+        frame_rgb = cv2.cvtColor(frame, cv2.COLOR_RGBA2RGB)
 
-        # Convert the frame to a format suitable for Tkinter
         _, jpeg = cv2.imencode('.jpg', frame_rgb)
         return jpeg.tobytes()
     def get_frames(self):
@@ -62,7 +54,7 @@ class VideoCamera(object):
         x1, y1 = x + w, y + h
 
         cv2.rectangle(img, bbox, (255, 0, 255), rt)
-        # Top Left  x,y
+
         cv2.line(img, (x, y), (x + l, y), (255, 0, 255), t)
         cv2.line(img, (x, y), (x, y + l), (255, 0, 255), t)
         # Top Right  x1,y
@@ -77,18 +69,18 @@ class VideoCamera(object):
         return img
 
 
-class LiveWebCam(object):
-    def __init__(self):
-        self.url = cv2.VideoCapture("rtsp://admin:88888888h@192.168.1.215:554/")
-
-    def __del__(self):
-        cv2.destroyAllWindows()
-
-    def get_frame(self):
-        success, imgNp = self.url.read()
-        resize = cv2.resize(imgNp, (640, 480), interpolation=cv2.INTER_LINEAR)
-        ret, jpeg = cv2.imencode('.jpg', resize)
-        return jpeg.tobytes()
+# class LiveWebCam(object):
+#     def __init__(self):
+#         self.url = cv2.VideoCapture("rtsp://admin:88888888h@192.168.1.215:554/")
+#
+#     def __del__(self):
+#         cv2.destroyAllWindows()
+#
+#     def get_frame(self):
+#         success, imgNp = self.url.read()
+#         resize = cv2.resize(imgNp, (640, 480), interpolation=cv2.INTER_LINEAR)
+#         ret, jpeg = cv2.imencode('.jpg', resize)
+#         return jpeg.tobytes()
 
 class SimpleFacerec:
     def __init__(self):
@@ -130,12 +122,8 @@ class SimpleFacerec:
                 image_array = np.frombuffer(image.image, np.uint8)
                 img = cv2.imdecode(image_array, cv2.IMREAD_COLOR)
                 rgb_img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)
-
-                # Detect faces in the image
                 face_locations = face_recognition.face_locations(rgb_img)
-
                 if face_locations:
-                    # If faces are detected, get face encodings
                     img_encoding = face_recognition.face_encodings(rgb_img, face_locations)[0]
                     image_id_str = str(image.id)
                     self.known_face_encodings.append(img_encoding)
