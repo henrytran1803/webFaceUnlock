@@ -445,6 +445,8 @@ Trả về vị trí khuôn mặt và tên tương ứng.
         return face_locations.astype(int), face_names
 ```
 ##Đôi điều về thư viện face_recognition
+- github: <https://github.com/ageitgey/face_recognition>
+
 Thư viện face_recognition là một giao diện đơn giản được xây dựng trên thư viện dự án mã nguồn mở dlib và được tạo ra bởi Adam Geitgey. Nó giúp đơn giản hóa quá trình nhận diện và mã hóa khuôn mặt, làm cho các nhiệm vụ nhận diện khuôn mặt trở nên dễ dàng hơn với Python.
 
 Input của Thư Viện face_recognition:
