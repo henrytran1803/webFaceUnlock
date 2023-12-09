@@ -466,3 +466,108 @@ Khoảng Cách Giữa Các Khuôn Mặt:
 
 face_recognition.face_distance(known_face_encodings, face_encoding): Tính toán khoảng cách giữa mã hóa khuôn mặt của một khuôn mặt và danh sách các mã hóa đã biết.
 
+---
+##Gửi lịch email
+```python
+#celery.py
+# from __future__ import absolute_import, unicode_literals: Dòng này đảm bảo rằng Python 2 và Python 3 tương thích với nhau.
+# import os: Dòng này import thư viện os để thực hiện các thao tác với hệ thống.
+# from celery import Celery: Dòng này import thư viện Celery để sử dụng chức năng background task.
+# Cài đặt Django settings module:
+# os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webFaceUnlock.settings'): Dòng này đặt biến môi trường DJANGO_SETTINGS_MODULE thành webFaceUnlock.settings. Điều này cho phép Celery biết cài đặt nào của Django sẽ được sử dụng.
+# Khởi tạo Celery instance:
+# app = Celery('webFaceUnlock'): Dòng này tạo một instance Celery mới có tên webFaceUnlock.
+# Cấu hình Celery:
+# app.config_from_object('django.conf:settings', namespace='CELERY'): Dòng này cấu hình Celery bằng cách load các cài đặt của Django từ namespace CELERY.
+# app.autodiscover_tasks(): Dòng này tự động khám phá và register các task được định nghĩa trong các app Django đã cài đặt.
+from __future__ import absolute_import, unicode_literals
+import os
+from celery import Celery
+
+os.environ.setdefault('DJANGO_SETTINGS_MODULE', 'webFaceUnlock.settings')
+
+app = Celery('webFaceUnlock')
+
+app.config_from_object('django.conf:settings', namespace='CELERY')
+
+app.autodiscover_tasks()
+```
+
+
+```python
+#tasks.py
+# 1. Import thư viện:
+# from datetime import timezone: Import chức năng timezone từ thư viện datetime để lấy múi giờ hiện tại.
+# from celery import shared_task: Import decorator shared_task từ thư viện celery để định nghĩa một task.
+# from django.core.mail import send_mail: Import hàm send_mail từ thư viện django.core.mail để gửi email.
+# from .models import Images: Import model Images từ ứng dụng hiện tại.
+# 2. Định nghĩa task:
+# @shared_task: Decorator này xác định hàm send_reminder_emails là một task của Celery.
+# 3. Lấy thời gian hiện tại:
+# current_time = timezone.now().time(): Lấy thời gian hiện tại theo định dạng time và lưu vào biến current_time.
+# 4. Kiểm tra thời gian:
+# if current_time.hour == 22 and current_time.minute == 30: Kiểm tra xem thời gian hiện tại có phải là 10:30 PM (giờ đóng cửa) hay không.
+# 5. Lấy danh sách email:
+# images_with_emails = Images.objects.exclude(email=''): Lấy tất cả các đối tượng Images có email không rỗng.
+# 6. Vòng lặp gửi email:
+# for image in images_with_emails: Duyệt qua từng đối tượng Images trong danh sách.
+# send_mail('Cảnh báo', 'sắp đến giờ đóng cửa quý khách vui lòng lấy tư trang tại tủ', 'from@example.com', [image.email]): Gửi email cho người dùng với nội dung "sắp đến giờ đóng cửa quý khách vui lòng lấy tư trang tại tủ" đến địa chỉ email được lưu trong trường email của đối tượng Images.
+# 7. Tóm tắt:
+# Task này thực hiện các chức năng sau:
+# Lấy thời gian hiện tại.
+# Kiểm tra xem thời gian hiện tại có phải là 10:30 PM hay không.
+# Nếu đúng, lấy tất cả các địa chỉ email có trong model Images.
+# Gửi email nhắc nhở cho người dùng.
+from datetime import timezone
+
+from celery import shared_task
+from django.core.mail import send_mail
+from .models import Images
+
+@shared_task
+def send_reminder_emails():
+    current_time = timezone.now().time()
+    if current_time.hour == 22 and current_time.minute == 30:
+        images_with_emails = Images.objects.exclude(email='')
+
+        for image in images_with_emails:
+            send_mail('Cảnh báo', 'sắp đến giờ đóng cửa quý khách vui lòng lấy tư trang tại tủ', 'from@example.com', [image.email])
+```
+```python
+#settings.py
+# 1. Broker và Result Backend:
+# CELERY_BROKER_URL: Địa chỉ của broker sử dụng để truyền và nhận các message của Celery. Trong trường hợp này, Redis được sử dụng với địa chỉ localhost:6379/0.
+# CELERY_RESULT_BACKEND: Địa chỉ của backend sử dụng để lưu trữ kết quả của các task. Redis cũng được sử dụng với cùng địa chỉ như broker.
+# 2. Múi giờ:
+# CELERY_TIMEZONE: Múi giờ được sử dụng để thực hiện các task. Trong trường hợp này, Asia/Ho_Chi_Minh được sử dụng.
+# 3. Cấu hình email:
+# EMAIL_BACKEND: Backend được sử dụng để gửi email. Trong trường hợp này, backend SMTP của Django được sử dụng.
+# EMAIL_HOST: Địa chỉ của server SMTP.
+# EMAIL_PORT: Cổng của server SMTP.
+# EMAIL_USE_TLS: Sử dụng TLS để bảo mật khi gửi email.
+# EMAIL_HOST_USER: Username của tài khoản email được sử dụng để gửi email.
+# EMAIL_HOST_PASSWORD: Password của tài khoản email được sử dụng để gửi email.
+# 4. Celery Beat Schedule:
+# CELERY_BEAT_SCHEDULE: Cấu hình để chạy task theo chu kỳ.
+# 'send-reminder-emails': Tên của task.
+# 'task': Đường dẫn đến task.
+# 'schedule': Chu kỳ chạy task. Trong trường hợp này, task sẽ chạy vào lúc 22:30 hàng ngày.
+
+CELERY_BROKER_URL = 'redis://localhost:6379/0'
+CELERY_RESULT_BACKEND = 'redis://localhost:6379/0'
+CELERY_TIMEZONE = 'Asia/Ho_Chi_Minh'
+
+# Email configuration
+EMAIL_BACKEND = 'django.core.mail.backends.smtp.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = 'tranvietanh1803@gmail.com'
+EMAIL_HOST_PASSWORD = 'nawh nonv shpj olkl'
+CELERY_BEAT_SCHEDULE = {
+    'send-reminder-emails': {
+        'task': 'webFaceUnlock.unlocker.tasks.send_reminder_emails',
+        'schedule': crontab(hour=22, minute=30),
+    },
+}
+```
