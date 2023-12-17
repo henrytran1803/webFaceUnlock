@@ -9,8 +9,8 @@
 - Xóa folder env
   - cd đến đường dẫn project
 - chạy python3 -m venv env
--  pip install -r requirement.txt đợi tải thư viện 
 - env/Scripts/Activate
+-  pip install -r requirement.txt đợi tải thư viện 
 - chạy python manage.py runserver
 ---
 ## mô tả cách hoạt động
