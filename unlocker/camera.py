@@ -15,7 +15,6 @@ class VideoCamera(object):
         self.facename='unknown'
     def __del__(self):
         self.video.release()
-
     def get_frame(self):
         success, frame = self.video.read()
         face_locations, face_names = self.sfr.detect_known_faces(frame)
@@ -155,16 +154,11 @@ class SimpleFacerec:
         print(f"Face encodings loaded from {filename}")
     def detect_known_faces(self, frame):
         small_frame = cv2.resize(frame, (0, 0), fx=self.frame_resizing, fy=self.frame_resizing)
-
         rgb_small_frame = cv2.cvtColor(small_frame, cv2.COLOR_BGR2RGB)
-
         face_locations = face_recognition.face_locations(rgb_small_frame)
-
         if not face_locations:
             return np.array([]), []
-
         face_encodings = face_recognition.face_encodings(rgb_small_frame, face_locations)
-
         face_names = []
         for face_encoding in face_encodings:
             matches = face_recognition.compare_faces(self.known_face_encodings, face_encoding)
@@ -176,9 +170,7 @@ class SimpleFacerec:
 
                 if matches[best_match_index]:
                     name = self.known_face_names[best_match_index]
-
             face_names.append(name)
-
         face_locations = np.array(face_locations)
         face_locations = face_locations / self.frame_resizing
         return face_locations.astype(int), face_names

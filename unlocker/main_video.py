@@ -54,7 +54,6 @@ class FaceRecognitionApp:
     def show_video_feed(self):
         ret, frame = self.cap.read()
 
-        # Detect Faces
         face_locations, face_names = self.sfr.detect_known_faces(frame)
         for face_loc, name in zip(face_locations, face_names):
             y1, x2, y2, x1 = face_loc[0], face_loc[1], face_loc[2], face_loc[3]
@@ -62,7 +61,6 @@ class FaceRecognitionApp:
             cv2.putText(frame, name, (x1, y1 - 10), cv2.FONT_HERSHEY_DUPLEX, 1, (0, 0, 200), 2)
             fancyDraw(frame, (x1, y1, x2 - x1, y2 - y1))
 
-        # Convert the frame to a format suitable for Tkinter
         frame = cv2.cvtColor(frame, cv2.COLOR_BGR2RGB)
         image = Image.fromarray(frame)
         img = ImageTk.PhotoImage(image=image)
