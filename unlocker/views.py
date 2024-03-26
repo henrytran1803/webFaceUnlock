@@ -1,12 +1,14 @@
 import base64
+import gzip
 
+from . import camera
 from .models import Images
 from concurrent.futures import ThreadPoolExecutor
 from django.http import JsonResponse
 from django.shortcuts import render, redirect
 from django.http import StreamingHttpResponse
 from .camera import VideoCamera
-
+import cv2
 stop_stream = False
 facename='unknown'
 frame = None
@@ -16,6 +18,8 @@ def index(request):
 
 def open():
     return redirect('open')
+
+
 
 def gen(camera):
     global stop_stream, facename, frame
@@ -29,6 +33,31 @@ def gen(camera):
             yield (b'--frame\r\n'
                    b'Content-Type: image/jpeg\r\n\r\n' + current_frame + b'\r\n\r\n')
 
+def video_stream():
+    global picture
+    # cap = cv2.VideoCapture(0)
+    cap = cv2.VideoCapture('rtsp://172.20.10.8:8554/mjpeg/1')
+
+    cap.set(cv2.CAP_PROP_FRAME_WIDTH, 640)
+    cap.set(cv2.CAP_PROP_FRAME_HEIGHT, 480)
+    cap.set(cv2.CAP_PROP_FPS, 15)
+    while True:
+        ret, frame = cap.read()
+        if not ret:
+            break
+
+        # frame = cv2.resize(frame, (640, 480))
+
+        _, jpeg = cv2.imencode('.jpg', frame)
+        picture = jpeg
+        frame_bytes = jpeg.tobytes()
+
+        yield (b'--frame\r\n'
+               b'Content-Type: image/jpeg\r\n\r\n' + frame_bytes + b'\r\n\r\n')
+
+# View chứa hàm streaming
+def video_feedrtps(request):
+    return StreamingHttpResponse(video_stream(), content_type="multipart/x-mixed-replace;boundary=frame")
 
 def video_feed(request):
     global stop_stream, facename,frame

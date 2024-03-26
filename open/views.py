@@ -1,16 +1,26 @@
-
+from django.contrib.sites import requests
 from django.shortcuts import render, redirect, get_object_or_404
-
+import requests
 from django.http import HttpResponse
 from django.shortcuts import redirect
 from .models import Images
 import base64
+
 
 def open(request):
     obj_ids = list(Images.objects.values_list('id', flat=True))
     print(obj_ids)
     value = 20
     button_names = [number for number in range(1, value + 1) if number not in obj_ids]
+    url = "http://172.20.10.2/"
+
+    if 1 not in button_names:
+        urlnew = url + "LED=ON/"
+        response = requests.get(urlnew)
+    else:
+        urlnew = url + "LED=OFF/"
+        requests.get(urlnew)
+
     button_groups = [button_names[i:i + 4] for i in range(0, len(button_names), 4)]
     context = {'button_groups': button_groups}
     return render(request, 'open/open.html', context)
