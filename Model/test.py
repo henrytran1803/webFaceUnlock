@@ -1,33 +1,42 @@
+import urllib
+import os
 import cv2
 import numpy as np
-from keras.models import load_model
 
-# Load mô hình đã huấn luyện
-model = load_model('face_recognition_model.h5')
+from Model.model import CreateModel
 
-# Khởi tạo video camera
-cap = cv2.VideoCapture(0)
+input_image_shape = (200, 200, 1)
+num_classes = 3
 
-while True:
-    # Đọc khung hình từ video camera
-    ret, frame = cap.read()
-    gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
-    resized_frame = cv2.resize(frame, (100, 100))
-    preprocessed_frame = resized_frame / 255.0
-    preprocessed_frame = np.expand_dims(preprocessed_frame, axis=0)
+model = CreateModel(input_image_shape, num_classes)
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
 
-    # Dự đoán nhãn của hình ảnh
-    prediction = model.predict(preprocessed_frame)
-    predicted_class = np.argmax(prediction)
+filepath = '/Users/tranvietanh/PycharmProjects/webFaceUnlock/Model/Weights/weights.h5'
+model.load_weights(filepath)
 
-    # Hiển thị kết quả lên video camera
-    cv2.putText(frame, f'Predicted Class: {predicted_class}', (10, 30), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 255, 0), 2)
-    cv2.imshow('Video Camera', frame)
+class_names = {0: 'Viet Anh', 1: 'Dien', 2: 'Truong'}
 
-    # Thoát khỏi vòng lặp khi nhấn 'q'
-    if cv2.waitKey(1) & 0xFF == ord('q'):
-        break
+image_path = '/Users/tranvietanh/PycharmProjects/webFaceUnlock/Model/IMG_0825.JPG'
 
-# Giải phóng tài nguyên
-cap.release()
-cv2.destroyAllWindows()
+img = cv2.imread(image_path)
+
+
+def preprocess_frame(frame):
+    if len(frame.shape) == 2:
+        gray_frame = frame
+    else:
+        gray_frame = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+    frame_resized = cv2.resize(gray_frame, (200, 200), interpolation=cv2.INTER_AREA)
+    frame_array = frame_resized.reshape(input_image_shape)
+    frame_array = frame_array.astype('float32') / 255
+    frame_array = np.expand_dims(frame_array, axis=0)
+    return frame_array
+
+processed_image = preprocess_frame(img)
+
+prediction = model.predict(processed_image)
+class_id = np.argmax(prediction, axis=1)[0]
+class_name = class_names[class_id]
+
+print("Predicted class:", class_name)
